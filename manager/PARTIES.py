@@ -27,7 +27,7 @@ REST      = 100
 NUM       = 0    # Number of colocated applications
 APP       = [None for i in xrange(NUM_PLUS_ONE)] # Application names
 QoS       = [None for i in xrange(NUM_PLUS_ONE)] # Target QoS of each application
-ECORES    = [i for i in range(8,22,1)] # unallocated cores
+ECORES    = [i for i in range(0,32,1)] # unallocated cores
 CORES     = [None for i in xrange(NUM_PLUS_ONE)] # CPU allocation
 LOAD      = []                        
 FREQ      = [2200 for i in xrange(NUM_PLUS_ONE)] # Frequency allocation
@@ -398,12 +398,12 @@ def propogateCore(idx=None):
     global APP, CORES, NUM
     if idx == None:
         for i in xrange(1, NUM+1):
-            print('    Change Core of', APP[i],':',CORES[i] )
-            subprocess.call(["lxc-cgroup", "-n", get_qos_metrics.SERVER_TO_FULL_ID[APP[i]], "cpuset.cpus", coreStr(CORES[i])], stdout=FF, stderr=FF)
+            print('    Change Core of', APP[i],':',CORES[i] , get_qos_metrics.SERVER_TO_FULL_ID[APP[i]])
+            subprocess.call(['sudo', "lxc-cgroup", "-n", get_qos_metrics.SERVER_TO_FULL_ID[APP[i]], "cpuset.cpus", coreStr(CORES[i])], stdout=FF, stderr=FF)
         #propogateCache()
         propogateFreq()
     else:
-        subprocess.call(["lxc-cgroup", "-n", get_qos_metrics.SERVER_TO_FULL_ID[APP[i]], "cpuset.cpus", coreStr(CORES[idx])], stdout=FF, stderr=FF)
+        subprocess.call(['sudo', "lxc-cgroup", "-n", get_qos_metrics.SERVER_TO_FULL_ID[APP[i]], "cpuset.cpus", coreStr(CORES[idx])], stdout=FF, stderr=FF)
         print('    Change Core of', APP[idx],':',CORES[idx] )
         #propogateCache(idx)
         propogateFreq(idx)
@@ -422,21 +422,21 @@ def propogateCache(idx=None):
 def propogateFreq(idx=None):
     global CORES, FREQ, NUM, APP
     if idx == None:
-        subprocess.call(["cpupower", "-c", "0-87", "frequency-set", "-g", "userspace"], stdout=FF, stderr=FF)
-        subprocess.call(["cpupower", "-c", "0-87", "frequency-set", "-f", "2200MHz"], stdout=FF, stderr=FF)
+        subprocess.call(['sudo', "cpupower", "-c", "0-31", "frequency-set", "-g", "userspace"], stdout=FF, stderr=FF)
+        subprocess.call(['sudo', "cpupower", "-c", "0-31", "frequency-set", "-f", "2200MHz"], stdout=FF, stderr=FF)
         for i in xrange(1, NUM+1):
             print('    Change Frequency of', APP[i],':',FREQ[i])
             if FREQ[i] <= 2200:
-                subprocess.call(["cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-f", "%dMHz" % FREQ[i]], stdout=FF, stderr=FF)
+                subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-f", "%dMHz" % FREQ[i]], stdout=FF, stderr=FF)
             else:
-                subprocess.call(["cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-g", "performance"], stdout=FF, stderr=FF)
+                subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-g", "performance"], stdout=FF, stderr=FF)
     else:
         print('    Change Frequency of', APP[idx],':',FREQ[idx])
         if FREQ[idx] <= 2200:
-            subprocess.call(["cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "userspace"],stdout=FF, stderr=FF)
-            subprocess.call(["cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-f", "%dMHz" % FREQ[idx]], stdout=FF, stderr=FF)
+            subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "userspace"],stdout=FF, stderr=FF)
+            subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-f", "%dMHz" % FREQ[idx]], stdout=FF, stderr=FF)
         else:
-            subprocess.call(["cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "performance"], stdout=FF, stderr=FF)
+            subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "performance"], stdout=FF, stderr=FF)
 
 
 # Fuck this function. We don't care about recording, just use the wrk data. It's good enough tbh.
