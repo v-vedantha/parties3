@@ -181,6 +181,9 @@ for op in OP_TO_SERVER:
     assert server not in SERVER_TO_OP
     SERVER_TO_OP[server] = op
 
+
+print(SERVER_TO_OP)
+
 p = subprocess.Popen("docker ps", shell=True, stdout=subprocess.PIPE)
 out, err = p.communicate()
 out = out.decode()
@@ -194,25 +197,25 @@ def get_id(line):
     return line.split()[0]
 
 MY_NAME_TO_REAL_NAME = {
-    'nginx-web-server' : 'socialnetwork-nginx-thrift-1',
-    'compose-post-service' : 'socialnetwork-compose-post-service-1',
-    'text-service' : 'socialnetwork-text-service-1',
-    'user-mention-service' : 'socialnetwork-user-mention-service-1',
-    'memcached_user_mention' : 'socialnetwork-user-memcached-1',
-    'mongo_user_mention' : 'socialnetwork-user-mongodb-1',
-    'url-shorten-service' : 'socialnetwork-url-shorten-service-1',
-    'user-service' : 'socialnetwork-user-service-1',
-    'media-service' : 'socialnetwork-media-service-1',
-    'unique-id-service' : 'socialnetwork-unique-id-service-1',
-    'post-storage-service' : 'socialnetwork-post-storage-service-1',
-    'mongo_post_storage' : 'socialnetwork-post-storage-mongodb-1',
-    'user-timeline-service' : 'socialnetwork-user-timeline-service-1',
-    'mongo_user_timeline' :  'socialnetwork-user-timeline-mongodb-1',
-    'redis_user_timeline' : 'socialnetwork-user-timeline-mongodb-1',
-    'home-timeline-service' : 'socialnetwork-home-timeline-service-1',
-    'social-graph-service' : 'socialnetwork-social-graph-service-1',
-    'redis_social_graph' : 'socialnetwork-social-graph-redis-1',
-    'redis_home_timeline' : 'socialnetwork-home-timeline-redis-1'
+    'nginx-web-server' : 'socialnetwork_nginx-thrift_1',
+    'compose-post-service' : 'socialnetwork_compose-post-service_1',
+    'text-service' : 'socialnetwork_text-service_1',
+    'user-mention-service' : 'socialnetwork_user-mention-service_1',
+    'memcached_user_mention' : 'socialnetwork_user-memcached_1',
+    'mongo_user_mention' : 'socialnetwork_user-mongodb_1',
+    'url-shorten-service' : 'socialnetwork_url-shorten-service_1',
+    'user-service' : 'socialnetwork_user-service_1',
+    'media-service' : 'socialnetwork_media-service_1',
+    'unique-id-service' : 'socialnetwork_unique-id-service_1',
+    'post-storage-service' : 'socialnetwork_post-storage-service_1',
+    'mongo_post_storage' : 'socialnetwork_post-storage-mongodb_1',
+    'user-timeline-service' : 'socialnetwork_user-timeline-service_1',
+    'mongo_user_timeline' :  'socialnetwork_user-timeline-mongodb_1',
+    'redis_user_timeline' : 'socialnetwork_user-timeline-redis_1',
+    'home-timeline-service' : 'socialnetwork_home-timeline-service_1',
+    'social-graph-service' : 'socialnetwork_social-graph-service_1',
+    'redis_social_graph' : 'socialnetwork_social-graph-redis_1',
+    'redis_home_timeline' : 'socialnetwork_home-timeline-redis_1'
 }
 
 REAL_NAME_TO_MY_NAME = {v: k for k, v in MY_NAME_TO_REAL_NAME.items()}
@@ -226,6 +229,8 @@ for line in lines:
     container_id = get_id(line)
     if name in REAL_NAME_TO_MY_NAME:
         SERVER_TO_CONTAINER_ID[REAL_NAME_TO_MY_NAME[name]] = container_id
+    else:
+        print("IGNORED", operation_name, op)
 
 SERVER_TO_OS_ID = {}
 for server in SERVER_TO_CONTAINER_ID:
@@ -259,3 +264,8 @@ def get_99p_latency_for_operation(op):
 def get_99p_latency_for_server(server):
     op = SERVER_TO_OP[server]
     return get_99p_latency_for_operation(op)
+
+print(len(SERVER_TO_OS_ID))
+print(len(MY_NAME_TO_REAL_NAME))
+for server in MY_NAME_TO_REAL_NAME:
+    print(get_99p_latency_for_server(server))
