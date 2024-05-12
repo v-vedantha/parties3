@@ -4,6 +4,8 @@ import subprocess;
 import time;
 import threading;
 
+# Runs the code in get_qos_metrics.py to initialize the stuff we care about.
+
 
 DIR = "/home/sc2682/scripts/monitor"
 PROF_PATH = "/home/sc2682/tools/intel-cmt-cat/pqos"

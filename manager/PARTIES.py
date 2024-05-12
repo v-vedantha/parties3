@@ -9,6 +9,9 @@ import threading
 #sys.path.append('/home/sc2682/scripts/monitor')
 #from monitorN import startMonitoring, endMonitoring
 import subprocess
+import get_qos_metrics
+
+xrange = range
 
 CONFIG = '/home/sc2682/scripts/manage/config.txt' # default path to the input config.txt file
 if (len(sys.argv) > 1):
@@ -57,9 +60,9 @@ def init():
     if len(sys.argv) > 2: 
         TIMELIMIT = int(sys.argv[2])
 # Read the name of colocated applications and their QoS target (may be in different units)
-    print "initialize!"
+    print("initialize!")
     if os.path.isfile('%s' % CONFIG) == False:
-        print "config file (%s) does not exist!" % CONFIG
+        print("config file (%s) does not exist!" % CONFIG)
         exit(0)
     with open('%s' % CONFIG, 'r') as f:
         lines = f.readlines()
@@ -93,7 +96,7 @@ def init():
 def main():
     global TIMELIMIT
     init()
-    print "after initiation..."
+    print("after initiation...")
     sleep(1)
     currentTime = 0
     while True:
@@ -102,7 +105,7 @@ def main():
 
 def makeDecision():
     global Lat, LSlack, TOLERANCE, LLSlack, REST, Slack, NUM, FREQ, helpID, victimID;
-    print "Make a decision! ", helpID
+    print ("Make a decision! ", helpID)
     if helpID > 0:
         cur = Lat[helpID]
         cnt = 0
@@ -212,7 +215,7 @@ def nextState(idx, upsize=True):
 
 def revert(idx):
     global State, APP, helpID, victimID, REST
-    print idx, " revert back"
+    print(idx, " revert back")
     if idx < 0:
         if State[-idx] == -1:
             assert adjustCore(-idx, 1, False) == True
@@ -232,7 +235,7 @@ def upSize(idx):
     global State, helpID, victimID, APP
     victimID = 0
     helpID = idx
-    print "Upsize ", APP[idx], "(",State[idx],")"
+    print("Upsize ", APP[idx], "(",State[idx],")")
     if State[idx] <= 0:
         State[idx] = random.randint(1,3)           
     for k in xrange(3):
@@ -242,13 +245,13 @@ def upSize(idx):
                 nextState(idx);
         else:
             return True
-    print "No way to upsize any more..."
+    print("No way to upsize any more...")
     helpID = 0
     return False
 
 def downSize(idx):
     global State, helpID, victimID
-    print "Downsize ", APP[idx], "(",State[idx],")"
+    print("Downsize ", APP[idx], "(",State[idx],")")
     victimID = 0
     if State[idx] >= 0:
         State[idx] = -random.randint(1,3)                   
@@ -266,8 +269,8 @@ def wait():
     global INTERVAL, TIMELIMIT
     sleep(INTERVAL)
     for i in xrange(1, NUM+1):
-	if LDOWN[i] > 0:
-	    LDOWN[i] -= 1
+        if LDOWN[i] > 0:
+            LDOWN[i] -= 1
     getLat()
     getData()
     record()
@@ -293,51 +296,11 @@ def getLat():
             LSlack[i] = 1-sum(MLat[i])*1.0/len(MLat[i])/QoS[i]
         #LSlack[i] = Slack[i]
         Slack[i] = (QoS[i] - Lat[i])*1.0 / QoS[i]
-        print '  --', APP[i],':', Lat[i], '(', Slack[i], LSlack[i],')'
+        print('  --', APP[i],':', Lat[i], '(', Slack[i], LSlack[i],')')
 
 def getData():
     global NUM, cCPU, CPU, CORES, MEM
     tmp = 0
-    # Monitoring of CPU and cache utilizataion is not needed in PARTIES manager. You can comment them out. These are just legacy codes and may be useful if you want to monitor real-time resource usage.
-    # with open("/home/sc2682/scripts/monitor/cpu.txt", "r") as ff:
-    #    lines = ff.readlines();
-    #    while (len(lines) >=1 and "Average" in lines[-1]):
-    #        lines = lines[:-1]
-    #    if (len(lines) >= 22):
-    #        lines = lines[-22:]
-    #        cnt = [0 for i in xrange(0, NUM+10, 1)]
-    #        for line in lines:
-    #            if "Average" in line:
-    #                break
-    #            words = line.split()
-    #            if len(words)<10:
-    #                break
-    #            cpuid = int(words[2]) 
-    #            tmp += float(words[3])+float(words[5])+float(words[6])+float(words[8])
-    #            for j in xrange(1, NUM+1, 1):
-    #                if cpuid in CORES[j]:
-    #                    CPU[j] += float(words[3])+float(words[5])+float(words[6])+float(words[8])
-    #                    cnt[j] += 1
-    #                break
-    #        for j in xrange(1, NUM+1):
-    #            if cnt[j] > 0:
-    #                CPU[j] /= cnt[j]
-    #cCPU.append(tmp/14.0)
-
-    #with open("/home/sc2682/scripts/monitor/cat.txt", "r") as ff:
-    #    lines = ff.readlines();
-    #    if (len(lines) >= 22):
-    #        lines = lines[-22:]
-    #        for line in lines:
-    #            words = line.split()
-    #            if words[0] == "TIME" or words[0] == "CORE" or words[0] == "WARN":
-    #                continue
-    #            if ("WARN:" in words[0]) or ("Ter" in words[0]):
-    #                break
-    #            cpuid = int(words[0])
-    #            for j in xrange(1, NUM+1):
-    #                if cpuid in CORES[j]:
-    #                    MEM[j] += float(words[4])+float(words[5])
 
 def coreStr(cores):
     return ','.join(str(e) for e in cores)
@@ -439,13 +402,13 @@ def propogateCore(idx=None):
     global APP, CORES, NUM
     if idx == None:
         for i in xrange(1, NUM+1):
-            print '    Change Core of', APP[i],':',CORES[i] 
+            print('    Change Core of', APP[i],':',CORES[i] )
             subprocess.call(["lxc-cgroup", "-n", "shuang_%s" % APP[i], "cpuset.cpus", coreStr(CORES[i])], stdout=FF, stderr=FF)
         propogateCache()
         propogateFreq()
     else:
         subprocess.call(["lxc-cgroup", "-n", "shuang_%s" % APP[idx], "cpuset.cpus", coreStr(CORES[idx])], stdout=FF, stderr=FF)
-        print '    Change Core of', APP[idx],':',CORES[idx] 
+        print('    Change Core of', APP[idx],':',CORES[idx] )
         propogateCache(idx)
         propogateFreq(idx)
 
@@ -457,7 +420,7 @@ def propogateCache(idx=None):
             subprocess.call(["pqos", "-e", "llc:%d=%s;" % (i+1, way(WAY[i], ways))], stdout=FF, stderr=FF)
             subprocess.call(["pqos", "-a", "llc:%d=%s;" % (i+1, coreStrHyper(CORES[i]))], stdout=FF,stderr=FF)
         if idx == None or i == idx:
-            print '    Change Cache Ways of', APP[i],':',WAY[i]
+            print('    Change Cache Ways of', APP[i],':',WAY[i])
         ways += WAY[i]
 
 def propogateFreq(idx=None):
@@ -466,13 +429,13 @@ def propogateFreq(idx=None):
         subprocess.call(["cpupower", "-c", "0-87", "frequency-set", "-g", "userspace"], stdout=FF, stderr=FF)
         subprocess.call(["cpupower", "-c", "0-87", "frequency-set", "-f", "2200MHz"], stdout=FF, stderr=FF)
         for i in xrange(1, NUM+1):
-            print '    Change Frequency of', APP[i],':',FREQ[i]
+            print('    Change Frequency of', APP[i],':',FREQ[i])
             if FREQ[i] <= 2200:
                 subprocess.call(["cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-f", "%dMHz" % FREQ[i]], stdout=FF, stderr=FF)
             else:
                 subprocess.call(["cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-g", "performance"], stdout=FF, stderr=FF)
     else:
-        print '    Change Frequency of', APP[idx],':',FREQ[idx]
+        print('    Change Frequency of', APP[idx],':',FREQ[idx])
         if FREQ[idx] <= 2200:
             subprocess.call(["cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "userspace"],stdout=FF, stderr=FF)
             subprocess.call(["cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-f", "%dMHz" % FREQ[idx]], stdout=FF, stderr=FF)
@@ -504,7 +467,7 @@ def record():
     
 def printout():
     global NUM, rrLat, LOAD, rLat, rCORES, cCPU, rFREQ, rWAY
-    print "CPU Utilization: ", sum(cCPU)*1.0/len(cCPU)
+    print("CPU Utilization: ", sum(cCPU)*1.0/len(cCPU))
     if PLOT == True:
         of=open("/home/sc2682/scripts/manage/results.txt", "w")
         for i in xrange(1, NUM+1):
