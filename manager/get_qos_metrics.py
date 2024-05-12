@@ -267,7 +267,7 @@ def get_99p_latency_for_server(server):
 
 
 def container_to_fullId(container_id):
-    p = subprocess.Popen("docker inspect -f '{{.Id}}' " + container_id, shell=True, stdout=subprocess.PIPE)
+    p = subprocess.Popen("sudo docker inspect -f '{{.Id}}' " + container_id, shell=True, stdout=subprocess.PIPE)
     out, err = p.communicate()
     out = out.decode()
     return out

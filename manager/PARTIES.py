@@ -71,11 +71,11 @@ def init():
         assert len(lines) >= (NUM + 1)
         for i in range(1, NUM+1, 1):
             words = lines[i].split()
-            assert len(words) == 3
+            assert len(words) == 2
             CORES[i] = []
             APP[i]   = words[0]
-            assert APP[i] in QOS
-            QoS[i]   = words[1]
+            #assert APP[i] in QOS
+            QoS[i]   = int(words[1]) * 1.0
             WAY[i]   = 20/NUM
             MLat[i]  = collections.deque(maxlen=(int(1.0/INTERVAL)))
 # Initialize resource parititioning
@@ -83,7 +83,7 @@ def init():
     while len(ECORES) > 0:
         CORES[j+1].append(ECORES.pop())
         j = (j + 1) % NUM
-    for i in xrange(20-20/NUM*NUM):
+    for i in xrange(20-20//NUM*NUM):
         WAY[i+1] += 1
 
 # Enforce harware isolation
@@ -286,10 +286,10 @@ def getLat():
         # out, err = p.communicate()
         out = get_qos_metrics.get_99p_latency_for_server(app)
         LLSlack[i] = Slack[i]
-        if out!='' and (not ('html' in out)):
-            Lat[i] = int(out)
-            MLat[i].append(int(out))
-            LSlack[i] = 1-sum(MLat[i])*1.0/len(MLat[i])/QoS[i]
+        #if out!='' and (not ('html' in out)):
+        Lat[i] = int(out)
+        MLat[i].append(int(out))
+        LSlack[i] = 1-sum(MLat[i])*1.0/len(MLat[i])/QoS[i]
         #LSlack[i] = Slack[i]
         Slack[i] = (QoS[i] - Lat[i])*1.0 / QoS[i]
         print('  --', APP[i],':', Lat[i], '(', Slack[i], LSlack[i],')')
@@ -400,12 +400,12 @@ def propogateCore(idx=None):
         for i in xrange(1, NUM+1):
             print('    Change Core of', APP[i],':',CORES[i] )
             subprocess.call(["lxc-cgroup", "-n", get_qos_metrics.SERVER_TO_FULL_ID[APP[i]], "cpuset.cpus", coreStr(CORES[i])], stdout=FF, stderr=FF)
-        propogateCache()
+        #propogateCache()
         propogateFreq()
     else:
         subprocess.call(["lxc-cgroup", "-n", get_qos_metrics.SERVER_TO_FULL_ID[APP[i]], "cpuset.cpus", coreStr(CORES[idx])], stdout=FF, stderr=FF)
         print('    Change Core of', APP[idx],':',CORES[idx] )
-        propogateCache(idx)
+        #propogateCache(idx)
         propogateFreq(idx)
 
 def propogateCache(idx=None):
