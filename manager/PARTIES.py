@@ -13,41 +13,41 @@ import get_qos_metrics
 
 xrange = range
 
-CONFIG = '/home/sc2682/scripts/manage/config.txt' # default path to the input config.txt file
+CONFIG = 'config.txt' # default path to the input config.txt file
 if (len(sys.argv) > 1):
     CONFIG = sys.argv[1]
 
 # QoS target of each application, in nanoseconds.
 QOS = {"moses": 15000000, "xapian": 5000000, "nginx": 10000000, "sphinx": 2500000000, "memcached": 600000, "mongodb": 300000000}
 
+NUM_PLUS_ONE = 20
 INTERVAL  = 0.1  # Frequency of monitoring, unit is second
 TIMELIMIT = 200   # How long to run this controller, unit is in second. 
 REST      = 100
 NUM       = 0    # Number of colocated applications
-APP       = [None for i in xrange(10)] # Application names
-IP        = [None for i in xrange(10)] # IP of clients that run applications
-QoS       = [None for i in xrange(10)] # Target QoS of each application
+APP       = [None for i in xrange(NUM_PLUS_ONE)] # Application names
+QoS       = [None for i in xrange(NUM_PLUS_ONE)] # Target QoS of each application
 ECORES    = [i for i in range(8,22,1)] # unallocated cores
-CORES     = [None for i in xrange(10)] # CPU allocation
+CORES     = [None for i in xrange(NUM_PLUS_ONE)] # CPU allocation
 LOAD      = []                        
-FREQ      = [2200 for i in xrange(10)] # Frequency allocation
+FREQ      = [2200 for i in xrange(NUM_PLUS_ONE)] # Frequency allocation
 EWAY      = 0                          # unallocated ways
-WAY       = [0 for i in xrange(10)]    # Allocation of LLC ways
-Lat       = [0 for i in xrange(10)]    # Real-time tail latency
-MLat      = [0 for i in xrange(10)]    # Real-time tail latency of a moving window
-Slack     = [0 for i in xrange(10)]    # Real-time tail latency slack 
-LSlack    = [0 for i in xrange(10)]    # Real-time tail latency slack in the last interval
-LLSlack   = [0 for i in xrange(10)]    # Real-time tail latency slack in the last interval
-LDOWN     = [0 for i in xrange(10)]    # Time to wait before this app can be downsized again
-CPU       = [0 for i in xrange(10)]    # CPU Utilization per core of each application
+WAY       = [0 for i in xrange(NUM_PLUS_ONE)]    # Allocation of LLC ways
+Lat       = [0 for i in xrange(NUM_PLUS_ONE)]    # Real-time tail latency
+MLat      = [0 for i in xrange(NUM_PLUS_ONE)]    # Real-time tail latency of a moving window
+Slack     = [0 for i in xrange(NUM_PLUS_ONE)]    # Real-time tail latency slack 
+LSlack    = [0 for i in xrange(NUM_PLUS_ONE)]    # Real-time tail latency slack in the last interval
+LLSlack   = [0 for i in xrange(NUM_PLUS_ONE)]    # Real-time tail latency slack in the last interval
+LDOWN     = [0 for i in xrange(NUM_PLUS_ONE)]    # Time to wait before this app can be downsized again
+CPU       = [0 for i in xrange(NUM_PLUS_ONE)]    # CPU Utilization per core of each application
 cCPU      = collections.deque(maxlen=(int(5.0/INTERVAL)))
-MEM       = [0 for i in xrange(10)]    # Total memory bandwidth usage of each application
-State     = [0 for i in xrange(10)]    # FSM State during resource adjustment
-rLat      = [[] for i in xrange(10)]   # Save real-time latency for final plotting
-rrLat     = [[] for i in xrange(10)]   # Save real-time latency for final plotting
-rCORES    = [[] for i in xrange(10)]   # Save real-time #cores for final plotting
-rWAY      = [[] for i in xrange(10)]   # Save real-time #ways for final plotting
-rFREQ     = [[] for i in xrange(10)]   # Save real-time frequency for final plotting
+MEM       = [0 for i in xrange(NUM_PLUS_ONE)]    # Total memory bandwidth usage of each application
+State     = [0 for i in xrange(NUM_PLUS_ONE)]    # FSM State during resource adjustment
+rLat      = [[] for i in xrange(NUM_PLUS_ONE)]   # Save real-time latency for final plotting
+rrLat     = [[] for i in xrange(NUM_PLUS_ONE)]   # Save real-time latency for final plotting
+rCORES    = [[] for i in xrange(NUM_PLUS_ONE)]   # Save real-time #cores for final plotting
+rWAY      = [[] for i in xrange(NUM_PLUS_ONE)]   # Save real-time #ways for final plotting
+rFREQ     = [[] for i in xrange(NUM_PLUS_ONE)]   # Save real-time frequency for final plotting
 FF        = open("gabage.txt", "w")    # random outputs
 PLOT      = True                       # If needed to do the final plotting 
 saveEnergy= True                       # If needed to save energy when QoSes can all be satisfied
@@ -74,9 +74,8 @@ def init():
             assert len(words) == 3
             CORES[i] = []
             APP[i]   = words[0]
-            IP[i]    = words[1]
             assert APP[i] in QOS
-            QoS[i]   = QOS[APP[i]]
+            QoS[i]   = words[1]
             WAY[i]   = 20/NUM
             MLat[i]  = collections.deque(maxlen=(int(1.0/INTERVAL)))
 # Initialize resource parititioning
@@ -199,17 +198,13 @@ def nextState(idx, upsize=True):
         else:
             State[idx] = -random.randint(1, 3)
     elif State[idx] == -1:
-        State[idx] = -3
+        State[idx] = -2
     elif State[idx] == -2:
         State[idx] = -1
-    elif State[idx] == -3:
-        State[idx] = -2
     elif State[idx] == 1:
-        State[idx] = 3
+        State[idx] = 2
     elif State[idx] == 2:
         State[idx] = 1
-    elif State[idx] == 3:
-        State[idx] = 2
     else:
         assert False
 
@@ -221,8 +216,8 @@ def revert(idx):
             assert adjustCore(-idx, 1, False) == True
         elif State[-idx] == -2:
             assert adjustFreq(-idx, 1) == True
-        elif State[-idx] == -3:
-            assert adjustCache(-idx, 1, False) == True
+        # elif State[-idx] == -3:
+            # assert adjustCache(-idx, 1, False) == True
         else:
             assert False;
         nextState(-idx)
@@ -285,10 +280,11 @@ def getLat():
 
     for i in xrange(1, NUM+1):
         app = APP[i]
-        if APP[i][-1] == "2":
-            app = APP[i][:-1]
-        p = subprocess.Popen("curl http://%s:84/%s/0.txt | tail -1" % (IP[i], app), shell=True, stdout=subprocess.PIPE, stderr=FF, preexec_fn=os.setsid,bufsize=0);
-        out, err = p.communicate()
+        # if APP[i][-1] == "2":
+        # app = APP[i][:-1] The fuck
+        # p = subprocess.Popen("curl http://%s:84/%s/0.txt | tail -1" % (IP[i], app), shell=True, stdout=subprocess.PIPE, stderr=FF, preexec_fn=os.setsid,bufsize=0);
+        # out, err = p.communicate()
+        out = get_qos_metrics.get_99p_latency_for_server(app)
         LLSlack[i] = Slack[i]
         if out!='' and (not ('html' in out)):
             Lat[i] = int(out)
@@ -369,7 +365,7 @@ def adjustFreq(idx, num):
             propogateFreq(idx)
     return True
 
-def adjustCache(idx, num, hasVictim):
+def adjustCache_(idx, num, hasVictim):
     global WAY, EWAY, NUM, victimID, State, Slack
     if num < 0:
         if WAY[idx] <= -num:
@@ -403,11 +399,11 @@ def propogateCore(idx=None):
     if idx == None:
         for i in xrange(1, NUM+1):
             print('    Change Core of', APP[i],':',CORES[i] )
-            subprocess.call(["lxc-cgroup", "-n", "shuang_%s" % APP[i], "cpuset.cpus", coreStr(CORES[i])], stdout=FF, stderr=FF)
+            subprocess.call(["lxc-cgroup", "-n", get_qos_metrics.SERVER_TO_FULL_ID[APP[i]], "cpuset.cpus", coreStr(CORES[i])], stdout=FF, stderr=FF)
         propogateCache()
         propogateFreq()
     else:
-        subprocess.call(["lxc-cgroup", "-n", "shuang_%s" % APP[idx], "cpuset.cpus", coreStr(CORES[idx])], stdout=FF, stderr=FF)
+        subprocess.call(["lxc-cgroup", "-n", get_qos_metrics.SERVER_TO_FULL_ID[APP[i]], "cpuset.cpus", coreStr(CORES[idx])], stdout=FF, stderr=FF)
         print('    Change Core of', APP[idx],':',CORES[idx] )
         propogateCache(idx)
         propogateFreq(idx)
@@ -443,33 +439,34 @@ def propogateFreq(idx=None):
             subprocess.call(["cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "performance"], stdout=FF, stderr=FF)
 
 
+# Fuck this function. We don't care about recording, just use the wrk data. It's good enough tbh.
 def record():
     global CPU, LOAD, NUM, Lat, rrLat, saveEnergy, rLat, CORES, rCORES, WAY, rWAY, FREQ, rFREQ
-    for i in xrange(1, NUM+1):
-        rrLat[i].append(Lat[i])
-        rLat[i].append(1-LSlack[i])
-        rCORES[i].append(len(CORES[i]))
-        rWAY[i].append(WAY[i])
-        rFREQ[i].append(FREQ[i])
-    p = subprocess.Popen("curl http://128.253.128.66:84/memcached/count.txt | tail -1", shell=True, stdout=subprocess.PIPE, stderr=FF, preexec_fn=os.setsid,bufsize=0);
-    #LOAD.append(10)
-    out, err = p.communicate()
-    if out!='':
-        LOAD.append(int(out)-1)
-        #if int(out) > 24:
-        #    saveEnergy = False
-        #else:
-        #    saveEnergy = True
-    elif len(LOAD) > 0:
-        LOAD.append(LOAD[-1])
-    else:
-        LOAD.append(0)
+    # for i in xrange(1, NUM+1):
+    #     rrLat[i].append(Lat[i])
+    #     rLat[i].append(1-LSlack[i])
+    #     rCORES[i].append(len(CORES[i]))
+    #     rWAY[i].append(WAY[i])
+    #     rFREQ[i].append(FREQ[i])
+    # p = subprocess.Popen("curl http://128.253.128.66:84/memcached/count.txt | tail -1", shell=True, stdout=subprocess.PIPE, stderr=FF, preexec_fn=os.setsid,bufsize=0);
+    # #LOAD.append(10)
+    # out, err = p.communicate()
+    # if out!='':
+    #     LOAD.append(int(out)-1)
+    #     #if int(out) > 24:
+    #     #    saveEnergy = False
+    #     #else:
+    #     #    saveEnergy = True
+    # elif len(LOAD) > 0:
+    #     LOAD.append(LOAD[-1])
+    # else:
+    #     LOAD.append(0)
     
 def printout():
     global NUM, rrLat, LOAD, rLat, rCORES, cCPU, rFREQ, rWAY
     print("CPU Utilization: ", sum(cCPU)*1.0/len(cCPU))
     if PLOT == True:
-        of=open("/home/sc2682/scripts/manage/results.txt", "w")
+        of=open("results.txt", "w")
         for i in xrange(1, NUM+1):
             for item in rrLat[i]:
                 of.write("%d " % item)

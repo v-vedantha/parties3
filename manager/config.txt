@@ -1,4 +1,21 @@
-2
-memcached 128.253.128.65 10000
-NGINX 128.253.128.65 100
+19
+nginx-web-server 1000
+compose-post-service 1000
+text-service 1000
+user-mention-service 1000
+memcached_user_mention 1000
+mongo_user_mention 1000
+url-shorten-service 1000
+user-service 1000
+media-service 1000
+unique-id-service 1000
+post-storage-service 1000
+mongo_post_storage 1000
+user-timeline-service 1000
+mongo_user_timeline 1000
+redis_user_timeline 1000
+home-timeline-service 1000
+social-graph-service 1000
+redis_social_graph 1000
+redis_home_timeline 1000
 
