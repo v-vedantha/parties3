@@ -259,3 +259,15 @@ def get_99p_latency_for_operation(op):
 def get_99p_latency_for_server(server):
     op = SERVER_TO_OP[server]
     return get_99p_latency_for_operation(op)
+
+
+def container_to_fullId(container_id):
+    p = subprocess.Popen("docker inspect -f '{{.Id}}' " + container_id, shell=True, stdout=subprocess.PIPE)
+    out, err = p.communicate()
+    out = out.decode()
+    return out
+
+SERVER_TO_FULL_ID = {}
+for server in SERVER_TO_CONTAINER_ID:
+    container_id = SERVER_TO_CONTAINER_ID[server]
+    SERVER_TO_FULL_ID[server] = container_to_fullId(container_id)
