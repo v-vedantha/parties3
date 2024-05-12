@@ -232,7 +232,7 @@ def upSize(idx):
     helpID = idx
     print("Upsize ", APP[idx], "(",State[idx],")")
     if State[idx] <= 0:
-        State[idx] = random.randint(1,3)           
+        State[idx] = random.randint(1,2)           
     for k in xrange(3):
         if (State[idx] == 1 and adjustCore(idx, 1, False) == False) or \
            (State[idx] == 2 and adjustFreq(idx, 1) == False) or \
@@ -249,7 +249,7 @@ def downSize(idx):
     print("Downsize ", APP[idx], "(",State[idx],")")
     victimID = 0
     if State[idx] >= 0:
-        State[idx] = -random.randint(1,3)                   
+        State[idx] = -random.randint(1,2)                   
     for k in xrange(3):
         if (State[idx] == -1 and adjustCore(idx, -1, False) == False) or \
            (State[idx] == -2 and adjustFreq(idx, -1) == False) or \

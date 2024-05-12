@@ -59,9 +59,20 @@ def get_traces(limit, service):
 
     response = json.loads(response.text)
     traces = response["data"]
-    return traces
+    # Filter out traces for things we don't care about
+    traces_real = []
+    for trace in traces:
+        isTraceUseful = False
+        for span in trace['spans']:
+            operation_name = span['operationName']
+            if 'wrk2-api' in operation_name:
+                isTraceUseful = True
+        if isTraceUseful:
+            traces_real.append(trace)
 
-traces = get_traces("1", "nginx-web-server")
+    return traces_real
+
+traces = get_traces("100", "nginx-web-server")
 
 # In units of us
 latencies = defaultdict(list)
@@ -281,3 +292,6 @@ print(len(SERVER_TO_OS_ID))
 print(len(MY_NAME_TO_REAL_NAME))
 for server in MY_NAME_TO_REAL_NAME:
     print(get_99p_latency_for_server(server))
+
+print(SERVICE_TO_99P_LATENCY)
+assert(len(SERVICE_TO_99P_LATENCY) > 10)
