@@ -7,7 +7,7 @@ import threading;
 # Runs the code in get_qos_metrics.py to initialize the stuff we care about.
 
 
-DIR = "/home/sc2682/scripts/monitor"
+DIR = "./"
 PROF_PATH = "/home/sc2682/tools/intel-cmt-cat/pqos"
 
 def startMonitoring(TIME):
@@ -33,10 +33,10 @@ def endMonitoring():
 
     # os.system("killall pqos")
     os.system("killall mpstat")
-    PROF_RESET = "%s/pqos -r -t 1" % PROF_PATH
+    # PROF_RESET = "%s/pqos -r -t 1" % PROF_PATH
     tmp_file = open("tmp", "w");
-    prof = subprocess.Popen("%s" % PROF_RESET, shell=True, stdout=tmp_file, stderr=tmp_file, preexec_fn=os.setsid);
-    prof.wait();
+    # prof = subprocess.Popen("%s" % PROF_RESET, shell=True, stdout=tmp_file, stderr=tmp_file, preexec_fn=os.setsid);
+    # prof.wait();
     tmp_file.close();
 
 TT = -1
