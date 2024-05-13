@@ -49,6 +49,7 @@ rCORES    = [[] for i in xrange(NUM_PLUS_ONE)]   # Save real-time #cores for fin
 rWAY      = [[] for i in xrange(NUM_PLUS_ONE)]   # Save real-time #ways for final plotting
 rFREQ     = [[] for i in xrange(NUM_PLUS_ONE)]   # Save real-time frequency for final plotting
 FF        = open("gabage.txt", "w")    # random outputs
+FT        = open("gabage2.txt", "w")   # other random outputs
 PLOT      = True                       # If needed to do the final plotting 
 saveEnergy= True                       # If needed to save energy when QoSes can all be satisfied
 helpID    = 0                          # Application ID that is being helped. >0 means upSize, <0 means Downsize
@@ -90,7 +91,6 @@ def init():
     propogateCore()
     # Monitoring of CPU and cache utilizataion is not needed in PARTIES manager. You can comment them out. These are just legacy codes and may be useful if you want to monitor real-time resource usage.
     # monproc = subprocess.Popen("python /home/sc2682/scripts/monitor/monitorN.py %d" % TIMELIMIT, shell=True, stdout=FF, stderr=FF, preexec_fn=os.setsid);
-    
 
 def main():
     global TIMELIMIT
@@ -399,11 +399,11 @@ def propogateCore(idx=None):
     if idx == None:
         for i in xrange(1, NUM+1):
             print('    Change Core of', APP[i],':',CORES[i] , get_qos_metrics.SERVER_TO_FULL_ID[APP[i]])
-            subprocess.call(['sudo', "lxc-cgroup", "-n", get_qos_metrics.SERVER_TO_FULL_ID[APP[i]], "cpuset.cpus", coreStr(CORES[i])], stdout=FF, stderr=FF)
+            subprocess.run(['sudo', 'docker', 'update', '--cpuset-cpus', coreStr(CORES[i]), get_qos_metrics.SERVER_TO_FULL_ID[APP[i]]], stdout=FT, stderr=FT)
         #propogateCache()
         propogateFreq()
     else:
-        subprocess.call(['sudo', "lxc-cgroup", "-n", get_qos_metrics.SERVER_TO_FULL_ID[APP[i]], "cpuset.cpus", coreStr(CORES[idx])], stdout=FF, stderr=FF)
+        subprocess.run(['sudo', "docker", "update", "--cpuset-cpus", coreStr(CORES[idx]), get_qos_metrics.SERVER_TO_FULL_ID[APP[idx]]], stdout=FF, stderr=FF)
         print('    Change Core of', APP[idx],':',CORES[idx] )
         #propogateCache(idx)
         propogateFreq(idx)
@@ -422,21 +422,23 @@ def propogateCache(idx=None):
 def propogateFreq(idx=None):
     global CORES, FREQ, NUM, APP
     if idx == None:
-        subprocess.call(['sudo', "cpupower", "-c", "0-31", "frequency-set", "-g", "userspace"], stdout=FF, stderr=FF)
-        subprocess.call(['sudo', "cpupower", "-c", "0-31", "frequency-set", "-f", "2200MHz"], stdout=FF, stderr=FF)
+        subprocess.call(['sudo', "cpupower", "-c", "0-31", "frequency-set", "-g", "userspace"], stdout=FT, stderr=FT)
+        print('sudo', "cpupower", "-c", "0-31", "frequency-set", "-g", "userspace")
+        subprocess.call(['sudo', "cpupower", "-c", "0-31", "frequency-set", "-f", "2200MHz"], stdout=FT, stderr=FT)
         for i in xrange(1, NUM+1):
             print('    Change Frequency of', APP[i],':',FREQ[i])
             if FREQ[i] <= 2200:
-                subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-f", "%dMHz" % FREQ[i]], stdout=FF, stderr=FF)
+                subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-f", "%dMHz" % FREQ[i]], stdout=FT, stderr=FT)
             else:
-                subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-g", "performance"], stdout=FF, stderr=FF)
+                subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-g", "performance"], stdout=FT, stderr=FT)
     else:
         print('    Change Frequency of', APP[idx],':',FREQ[idx])
         if FREQ[idx] <= 2200:
-            subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "userspace"],stdout=FF, stderr=FF)
-            subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-f", "%dMHz" % FREQ[idx]], stdout=FF, stderr=FF)
+            subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "userspace"],stdout=FT, stderr=FT)
+            print('sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "userspace")
+            subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-f", "%dMHz" % FREQ[idx]], stdout=FT, stderr=FT)
         else:
-            subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "performance"], stdout=FF, stderr=FF)
+            subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "performance"], stdout=FT, stderr=FT)
 
 
 # Fuck this function. We don't care about recording, just use the wrk data. It's good enough tbh.

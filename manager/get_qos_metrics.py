@@ -4,12 +4,16 @@ import os
 import json
 import subprocess
 import requests
+import time
+import urllib
 from collections import defaultdict
 
 JAEGER_TRACES_ENDPOINT = "http://localhost:16686/api/traces?"
 # query the jaeger traces endpoint
 JAEGER_TRACES_PARAMS = "&service="
+JAEGER_OPERATIONS_PARAMS = "&operation="
 JAEGER_LIMITS_PARAMS = "limit="
+JAEGER_END_PARAMS = "&end="
 
 SERVICES = ['compose-post-service', 'home-timeline-service',
             'media-service', 'nginx-web-server', 'post-storage-service', 'social-graph-service', 'text-service', 'unique-id-service']
@@ -45,12 +49,21 @@ SERVICES = ['compose-post-service', 'home-timeline-service',
 #     'compose_user_mentions_mongo_find_client' : 'user-mention-service'
 # }
 
+
+def get_traces_op(limit, operation):
+    url = JAEGER_TRACES_ENDPOINT + JAEGER_LIMITS_PARAMS + limit + JAEGER_OPERATIONS_PARAMS + urllib.parse.quote(operation, safe='') + JAEGER_TRACES_PARAMS + SERVICE_TO_SERVER[operation] + JAEGER_END_PARAMS + str(time.time_ns() // 1000 - 1000000)
+    print(url)
+    return get_traces_url(url)
+
 # Get the 99% latencies for each service
 def get_traces(limit, service):
     """
     Returns list of all traces for a service
     """
-    url = JAEGER_TRACES_ENDPOINT + JAEGER_LIMITS_PARAMS + limit + JAEGER_TRACES_PARAMS + service
+    url = JAEGER_TRACES_ENDPOINT + JAEGER_LIMITS_PARAMS + limit + JAEGER_TRACES_PARAMS + service + JAEGER_END_PARAMS + str(time.time_ns() // 1000)
+    return get_traces_url(url)
+
+def get_traces_url(url):
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -101,7 +114,7 @@ for service in SERVICE_TO_PID:
     server = PID_TO_SERVER[pid]
     SERVICE_TO_SERVER[service] = server
 
-# print(SERVICE_TO_SERVER)
+print(SERVICE_TO_SERVER)
 
 # for latency in latencies:
 #     print(latency)
@@ -253,18 +266,32 @@ for server in SERVER_TO_CONTAINER_ID:
 
 print(SERVER_TO_OS_ID)
 
+traces = []
+traces_time = 0
+latencies_cache = {} # f--k it, let's cache until we figure it out
+
 # Sweeeeeet baby. Finally I need something that will get the latency of each service I care about
 def get_latencies_for_operation(op):
+    global traces, traces_time
     latencies = []
-    traces = get_traces("10", "nginx-web-server")
+    if time.time_ns() - traces_time > 10000000:
+        traces = get_traces("100", "nginx-web-server")
+        # traces = get_traces_op("100", "write_home_timeline_redis_update_client")
+        traces_time = time.time_ns()
+    
+    operations = set()
     for trace in traces:
         for span in trace['spans']:
             operation_name = span['operationName']
+            operations.add(operation_name)
             if operation_name == op:
                 latencies.append(span['duration']) # Once again in us
 
-    return latencies
-
+    if not op in operations:
+        return latencies_cache[op]
+    else:
+        latencies_cache[op] = latencies
+        return latencies
 
 def get_99p_latency_for_operation(op):
     latencies = get_latencies_for_operation(op)
@@ -280,7 +307,7 @@ def get_99p_latency_for_server(server):
 def container_to_fullId(container_id):
     p = subprocess.Popen("sudo docker inspect -f '{{.Id}}' " + container_id, shell=True, stdout=subprocess.PIPE)
     out, err = p.communicate()
-    out = out.decode()
+    out = out.decode()[:-1] # truncate newline
     return out
 
 SERVER_TO_FULL_ID = {}
