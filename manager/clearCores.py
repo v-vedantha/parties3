@@ -15,6 +15,9 @@ with open('%s' % CONFIG, 'r') as f:
     assert len(lines[0].split()) == 1
     NUM = int(lines[0].split()[0])
     assert len(lines) >= (NUM + 1)
+    subprocess.call(['sudo', "cpupower", "-c", "0-31", "frequency-set", "-g", "userspace"])
+    subprocess.call(['sudo', "cpupower", "-c", "0-31", "frequency-set", "-f", "2400MHz"])
+    # subprocess.call(['sudo', "cpupower", "-c", "0-31", "frequency-set", "-g", "performance"])
     for i in range(1, NUM+1, 1):
             words = lines[i].split()
             assert len(words) == 2

@@ -51,7 +51,7 @@ SERVICES = ['compose-post-service', 'home-timeline-service',
 
 
 def get_traces_op(limit, operation):
-    url = JAEGER_TRACES_ENDPOINT + JAEGER_LIMITS_PARAMS + limit + JAEGER_OPERATIONS_PARAMS + urllib.parse.quote(operation, safe='') + JAEGER_TRACES_PARAMS + SERVICE_TO_SERVER[operation] + JAEGER_END_PARAMS + str(time.time_ns() // 1000 - 1000000)
+    url = JAEGER_TRACES_ENDPOINT + JAEGER_LIMITS_PARAMS + limit + JAEGER_OPERATIONS_PARAMS + urllib.parse.quote(operation, safe='') + JAEGER_TRACES_PARAMS + SERVICE_TO_SERVER[operation] + JAEGER_END_PARAMS + str(time.time_ns() // 1000)
     print(url)
     return get_traces_url(url)
 
@@ -277,26 +277,26 @@ def get_latencies_for_operation(op):
     if time.time_ns() - traces_time > 10000000:
         traces = get_traces("100", "nginx-web-server")
         # traces = get_traces_op("100", "write_home_timeline_redis_update_client")
-        traces_time = time.time_ns()
-    
-    operations = set()
-    for trace in traces:
-        for span in trace['spans']:
-            operation_name = span['operationName']
-            operations.add(operation_name)
-            if operation_name == op:
-                latencies.append(span['duration']) # Once again in us
+   
+        operations = set()
+        for trace in traces:
+            for span in trace['spans']:
+                operation_name = span['operationName']
+                if not operation_name in operations:
+                    latencies_cache[operation_name] = []
+                    operations.add(operation_name)
+                
+                latencies_cache[operation_name].append(span['duration']) # Once again in us
 
-    if not op in operations:
-        return latencies_cache[op]
-    else:
-        latencies_cache[op] = latencies
-        return latencies
+        traces_time = time.time_ns()
+
+    return latencies_cache[op]
 
 def get_99p_latency_for_operation(op):
     latencies = get_latencies_for_operation(op)
     latencies.sort()
-    idx = int(len(latencies) * 0.90)
+    # idx = int(len(latencies) * 0.90)
+    idx = int(len(latencies) * 0.99) # use 99p for operation latencies since ideally we end up with 90 latency on the whole thing
     return latencies[idx]
 
 def get_99p_latency_for_server(server):

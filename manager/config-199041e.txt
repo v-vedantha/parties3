@@ -1,0 +1,20 @@
+19
+nginx-web-server 4670
+compose-post-service 3250
+text-service 1080
+user-mention-service 633
+memcached_user_mention 281
+mongo_user_mention 290
+url-shorten-service 622
+user-service 159
+media-service 169
+unique-id-service 123
+post-storage-service 223
+mongo_post_storage 181
+user-timeline-service 775
+mongo_user_timeline 657
+redis_user_timeline 67
+home-timeline-service 525
+social-graph-service 381
+redis_social_graph 72
+redis_home_timeline 15

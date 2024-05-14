@@ -30,7 +30,7 @@ QoS       = [None for i in xrange(NUM_PLUS_ONE)] # Target QoS of each applicatio
 ECORES    = [i for i in range(0,32,1)] # unallocated cores
 CORES     = [None for i in xrange(NUM_PLUS_ONE)] # CPU allocation
 LOAD      = []                        
-FREQ      = [2200 for i in xrange(NUM_PLUS_ONE)] # Frequency allocation
+FREQ      = [2400 for i in xrange(NUM_PLUS_ONE)] # Frequency allocation
 EWAY      = 0                          # unallocated ways
 WAY       = [0 for i in xrange(NUM_PLUS_ONE)]    # Allocation of LLC ways
 Lat       = [0 for i in xrange(NUM_PLUS_ONE)]    # Real-time tail latency
@@ -302,7 +302,7 @@ def coreStr(cores):
     return ','.join(str(e) for e in cores)
 
 def coreStrHyper(cores):
-    return coreStr(cores) + ',' + ','.join(str(e + 44) for e in cores)
+    return coreStr(cores) + ',' + ','.join(str((e + 16) % 32) for e in cores)
 
 def way(ways, rightways):
     return hex(int('1'*ways+'0'*rightways,2))
@@ -337,31 +337,33 @@ def adjustCore(idx, num, hasVictim):
     propogateCore(idx)
     return True
 
+FREQ_TRANSITIONS = {'UP': {1500: 2400, 2400: 3000, 3000: 3000}, 'DOWN': {3000: 2400, 2400: 1500, 1500: 1500}}
+
 def adjustFreq(idx, num):
-    global FREQ, APP, State
-    assert FREQ[idx] >=1200 and FREQ[idx] <= 2300
+    global FREQ, APP, State, FREQ_TRANSITIONS
+    assert FREQ[idx] >=1500 and FREQ[idx] <= 3000
     if num < 0:
-        if FREQ[idx] == 1200:
+        if FREQ[idx] == 1500:
             return False       # Frequency is already at the lowest. Cannot be reduced further
         else:
-            FREQ[idx] += 100*num
+            FREQ[idx] = FREQ_TRANSITIONS['DOWN'][FREQ[idx]]
             propogateFreq(idx)
     else:
-        if FREQ[idx] == 2300:
+        if FREQ[idx] == 3000:
             return False       # Shuang
-            victimID = 0
-            for i in xrange(1, NUM+1):
-                if i!=idx and FREQ[i] > 1200 and (victimID == 0 or Slack[i] > Slack[victimID]):
-                    victimID = i
-            if victimID == 0:
-                return False
-            else:
-                FREQ[victimID] -= 100*num
-                propogateFreq(victimID)
-                if State[victimID] == State[idx]:
-                    nextState(victimID)
+            # victimID = 0
+            # for i in xrange(1, NUM+1):
+            #     if i!=idx and FREQ[i] > 1200 and (victimID == 0 or Slack[i] > Slack[victimID]):
+            #        victimID = i
+            # if victimID == 0:
+            #     return False
+            # else:
+            #     FREQ[victimID] -= 100*num
+            #     propogateFreq(victimID)
+            #     if State[victimID] == State[idx]:
+            #         nextState(victimID)
         else:
-            FREQ[idx] += 100*num
+            FREQ[idx] = FREQ_TRANSITIONS['UP'][FREQ[idx]]
             propogateFreq(idx)
     return True
 
@@ -422,18 +424,18 @@ def propogateCache(idx=None):
 def propogateFreq(idx=None):
     global CORES, FREQ, NUM, APP
     if idx == None:
-        subprocess.call(['sudo', "cpupower", "-c", "0-31", "frequency-set", "-g", "userspace"], stdout=FT, stderr=FT)
-        print('sudo', "cpupower", "-c", "0-31", "frequency-set", "-g", "userspace")
-        subprocess.call(['sudo', "cpupower", "-c", "0-31", "frequency-set", "-f", "2200MHz"], stdout=FT, stderr=FT)
+        subprocess.call(['sudo', "cpupower", "-c", "0-31", "frequency-set", "-g", "userspace"], stdout=FF, stderr=FF)
+        subprocess.call(['sudo', "cpupower", "-c", "0-31", "frequency-set", "-f", "2400MHz"], stdout=FF, stderr=FF)
         for i in xrange(1, NUM+1):
             print('    Change Frequency of', APP[i],':',FREQ[i])
-            if FREQ[i] <= 2200:
+            if FREQ[i] <= 2400:
                 subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-f", "%dMHz" % FREQ[i]], stdout=FT, stderr=FT)
+                print('sudo', "cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-f", "%dMHz" % FREQ[i])
             else:
                 subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-g", "performance"], stdout=FT, stderr=FT)
     else:
         print('    Change Frequency of', APP[idx],':',FREQ[idx])
-        if FREQ[idx] <= 2200:
+        if FREQ[idx] <= 2400:
             subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "userspace"],stdout=FT, stderr=FT)
             print('sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "userspace")
             subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-f", "%dMHz" % FREQ[idx]], stdout=FT, stderr=FT)
