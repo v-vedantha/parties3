@@ -13,7 +13,7 @@ import get_qos_metrics
 
 xrange = range
 
-CONFIG = 'config.txt' # default path to the input config.txt file
+CONFIG = 'config-preferential.txt' # default path to the input config.txt file
 if (len(sys.argv) > 1):
     CONFIG = sys.argv[1]
 
@@ -31,8 +31,6 @@ ECORES    = [i for i in range(0,32,1)] # unallocated cores
 CORES     = [None for i in xrange(NUM_PLUS_ONE)] # CPU allocation
 LOAD      = []                        
 FREQ      = [2400 for i in xrange(NUM_PLUS_ONE)] # Frequency allocation
-ALFREQ    = [2400 for i in range(0, 32, 1)]
-ALFREQ_CTR= [{} for i in range(0, 32, 1)]
 EWAY      = 0                          # unallocated ways
 WAY       = [0 for i in xrange(NUM_PLUS_ONE)]    # Allocation of LLC ways
 Lat       = [0 for i in xrange(NUM_PLUS_ONE)]    # Real-time tail latency
@@ -59,13 +57,11 @@ victimID  = 0                          # Application that is helping helpID, thu
 TOLERANCE = 5                          # Check these times of latency whenver an action is taken
 
 def init():
-    global EWAY, MLat, TIMELIMIT, CONFIG, NUM, APP, QoS, Lat, Slack, ECORES, CORES, FREQ, WAY, CPU, MEM, INTERVAL, ALFREQ_CTR
+    global EWAY, MLat, TIMELIMIT, CONFIG, NUM, APP, QoS, Lat, Slack, ECORES, CORES, FREQ, WAY, CPU, MEM, INTERVAL
     if len(sys.argv) > 2: 
         TIMELIMIT = int(sys.argv[2])
 # Read the name of colocated applications and their QoS target (may be in different units)
     print("initialize!")
-    for core in range(32):
-        ALFREQ_CTR[core] = {1500: 0, 2400: 0, 3000: 0}
     if os.path.isfile('%s' % CONFIG) == False:
         print("config file (%s) does not exist!" % CONFIG)
         exit(0)
@@ -97,19 +93,13 @@ def init():
     # monproc = subprocess.Popen("python /home/sc2682/scripts/monitor/monitorN.py %d" % TIMELIMIT, shell=True, stdout=FF, stderr=FF, preexec_fn=os.setsid);
 
 def main():
-    global TIMELIMIT, ECORES, ALFREQ, ALFREQ_CTR
+    global TIMELIMIT
     init()
     print("after initiation...")
     sleep(1)
     currentTime = 0
-    i = 0
     while True:
         #wait()
-        for core in range(32):
-            ALFREQ_CTR[core][ALFREQ[core]] += 1
-        i += 1
-        if i % 10 == 0:
-            print("freq count: ", ALFREQ_CTR)
         makeDecision()
 
 def makeDecision():
@@ -294,7 +284,7 @@ def getLat():
         # app = APP[i][:-1] The fuck
         # p = subprocess.Popen("curl http://%s:84/%s/0.txt | tail -1" % (IP[i], app), shell=True, stdout=subprocess.PIPE, stderr=FF, preexec_fn=os.setsid,bufsize=0);
         # out, err = p.communicate()
-        out = get_qos_metrics.get_99p_latency_for_server(app)
+        out = get_qos_metrics.get_99p_latency_for_root()
         LLSlack[i] = Slack[i]
         #if out!='' and (not ('html' in out)):
         Lat[i] = int(out)
@@ -302,7 +292,7 @@ def getLat():
         LSlack[i] = 1-sum(MLat[i])*1.0/len(MLat[i])/QoS[i]
         #LSlack[i] = Slack[i]
         Slack[i] = (QoS[i] - Lat[i])*1.0 / QoS[i]
-        # print('  --', APP[i],':', Lat[i], '(', Slack[i], LSlack[i],')')
+        print('  --', APP[i],':', Lat[i], '(', Slack[i], LSlack[i],')')
 
 def getData():
     global NUM, cCPU, CPU, CORES, MEM
@@ -432,7 +422,7 @@ def propogateCache(idx=None):
         ways += WAY[i]
 
 def propogateFreq(idx=None):
-    global CORES, FREQ, NUM, APP, ALFREQ
+    global CORES, FREQ, NUM, APP
     if idx == None:
         subprocess.call(['sudo', "cpupower", "-c", "0-31", "frequency-set", "-g", "userspace"], stdout=FF, stderr=FF)
         subprocess.call(['sudo', "cpupower", "-c", "0-31", "frequency-set", "-f", "2400MHz"], stdout=FF, stderr=FF)
@@ -441,28 +431,16 @@ def propogateFreq(idx=None):
             if FREQ[i] <= 2400:
                 subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-f", "%dMHz" % FREQ[i]], stdout=FT, stderr=FT)
                 print('sudo', "cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-f", "%dMHz" % FREQ[i])
-                for core in CORES[i]:
-                    ALFREQ[core] = FREQ[i]
-                    ALFREQ[(core + 16) % 32] = FREQ[i]
             else:
                 subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[i]), "frequency-set", "-g", "performance"], stdout=FT, stderr=FT)
-                for core in CORES[i]:
-                    ALFREQ[core] = 3000
-                    ALFREQ[(core + 16) % 32] = 3000
     else:
         print('    Change Frequency of', APP[idx],':',FREQ[idx])
         if FREQ[idx] <= 2400:
             subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "userspace"],stdout=FT, stderr=FT)
             print('sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "userspace")
             subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-f", "%dMHz" % FREQ[idx]], stdout=FT, stderr=FT)
-            for core in CORES[idx]:
-                ALFREQ[core] = FREQ[idx]
-                ALFREQ[(core + 16) % 32] = FREQ[idx]
         else:
             subprocess.call(['sudo', "cpupower", "-c", coreStrHyper(CORES[idx]), "frequency-set", "-g", "performance"], stdout=FT, stderr=FT)
-            for core in CORES[idx]:
-                ALFREQ[core] = 3000
-                ALFREQ[(core + 16) % 32] = 3000
 
 
 # Fuck this function. We don't care about recording, just use the wrk data. It's good enough tbh.

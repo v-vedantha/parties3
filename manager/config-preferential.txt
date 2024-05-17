@@ -1,0 +1,20 @@
+19
+memcached_user_mention 4670
+mongo_user_mention 4670
+mongo_user_timeline 4670
+redis_user_timeline 4670
+user-mention-service 4670
+redis_social_graph 4670
+redis_home_timeline 4670
+compose-post-service 4670
+text-service 4670
+url-shorten-service 4670
+user-service 4670
+media-service 4670
+unique-id-service 4670
+post-storage-service 4670
+mongo_post_storage 4670
+user-timeline-service 4670
+home-timeline-service 4670
+social-graph-service 4670
+nginx-web-server 4670

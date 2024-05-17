@@ -269,10 +269,11 @@ print(SERVER_TO_OS_ID)
 traces = []
 traces_time = 0
 latencies_cache = {} # f--k it, let's cache until we figure it out
+op_cnt = [0 for _ in range(50)]
 
 # Sweeeeeet baby. Finally I need something that will get the latency of each service I care about
 def get_latencies_for_operation(op):
-    global traces, traces_time
+    global traces, traces_time, op_cnt
     latencies = []
     if time.time_ns() - traces_time > 10000000:
         traces = get_traces("100", "nginx-web-server")
@@ -288,15 +289,18 @@ def get_latencies_for_operation(op):
                 
                 latencies_cache[operation_name].append(span['duration']) # Once again in us
 
-        traces_time = time.time_ns()
+        traces_time = time.time_ns() 
+        op_cnt[len(operations)] += 1
+        if sum(op_cnt) % 20 == 0:
+            print("op_cnt: ", op_cnt)
 
     return latencies_cache[op]
 
 def get_99p_latency_for_operation(op):
     latencies = get_latencies_for_operation(op)
     latencies.sort()
-    # idx = int(len(latencies) * 0.90)
-    idx = int(len(latencies) * 0.99) # use 99p for operation latencies since ideally we end up with 90 latency on the whole thing
+    idx = int(len(latencies) * 0.90)
+    # idx = int(len(latencies) * 0.99) # use 99p for operation latencies since ideally we end up with 90 latency on the whole thing
     return latencies[idx]
 
 def get_99p_latency_for_server(server):
@@ -322,3 +326,6 @@ for server in MY_NAME_TO_REAL_NAME:
 
 print(SERVICE_TO_99P_LATENCY)
 assert(len(SERVICE_TO_99P_LATENCY) > 10)
+
+def get_99p_latency_for_root():
+    return get_99p_latency_for_server('nginx-web-server')
